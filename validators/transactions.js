@@ -23,9 +23,8 @@ module.exports.updateTransactionSchema = Joi.object({
         .required(),
     fields: Joi.object({
         note: Joi.string(),
-        tag: Joi.string(),
+        tagId: Joi.string().guid({ version: ['uuidv4'] }),
         amount: Joi.number().min(0),
-        type: Joi.string().valid('debit', 'credit'),
         date: Joi.number(),
     }).required(),
 });
