@@ -18,15 +18,15 @@ module.exports.processQuery = (query) => {
     delete query['page'];
 
     if (query['fromDate']) {
-        query['fromDate'] = moment(query['fromDate'], DATE_FORMAT).unix();
+        query['fromDate'] = moment(query['fromDate'], DATE_FORMAT).startOf('day').unix();
     } else {
-        query['fromDate'] = moment('01-01-0001', DATE_FORMAT).unix();
+        query['fromDate'] = moment('01-01-0001', DATE_FORMAT).startOf('day').unix();
     }
 
     if (query['toDate']) {
-        query['toDate'] = moment(query['toDate'], DATE_FORMAT).unix();
+        query['toDate'] = moment(query['toDate'], DATE_FORMAT).endOf('day').unix();
     } else {
-        query['toDate'] = moment().unix();
+        query['toDate'] = moment().endOf('day').unix();
     }
 
     if (query['minAmount']) {
