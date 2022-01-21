@@ -3,6 +3,11 @@ const Joi = require('joi');
 module.exports.getTransactionsSchema = Joi.object({
     page: Joi.number().min(0),
     perPage: Joi.number().min(1).max(100).positive(),
+    fromDate: Joi.date(),
+    toDate: Joi.date(),
+    tagId: Joi.string().guid({ version: ['uuidv4'] }),
+    minAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER),
+    maxAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER),
 });
 
 module.exports.createTransactionSchema = Joi.object({

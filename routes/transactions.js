@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const Transactions = require('../models/transactions');
 const Tags = require('../models/tags');
 const auth = require('../middlewares/auth');
+const { processQuery } = require('../utilities/queryProcessor');
 
 const {
     getTransactionsSchema,
@@ -15,14 +16,8 @@ const { removeProps } = require('../utilities/processRecords');
 
 // returns an array of transactions, uses pagination
 router.get('/', auth, async (req, res) => {
-    let skip = 0;
-    let limit = 10;
-
-    const page = Number.parseInt(req.query.page);
-    const perPage = Number.parseInt(req.query.perPage);
     let query = {
-        page: Number.isInteger(page) ? page : 1,
-        perPage: Number.isInteger(perPage) ? perPage : 10,
+        ...req.query,
     };
 
     const validator = getTransactionsSchema.validate(query);
@@ -34,16 +29,21 @@ router.get('/', auth, async (req, res) => {
         });
     }
 
-    if (query.perPage) {
-        limit = query.perPage;
-    }
+    processQuery(query);
 
-    if (query.page) {
-        query.page = query.page === 0 ? query.page : query.page - 1;
-        skip = limit * query.page;
+    const dbQuery = {
+        date: { $gte: query.fromDate, $lte: query.toDate },
+        amount: { $gte: query.minAmount, $lte: query.maxAmount },
+    };
+
+    if (query.tagId) {
+        dbQuery['tagId'] = query.tagId;
     }
 
     const transactions = await Transactions.aggregate([
+        {
+            $match: dbQuery,
+        },
         {
             $lookup: {
                 from: 'tags',
@@ -58,9 +58,9 @@ router.get('/', auth, async (req, res) => {
             },
         },
     ])
-        .limit(limit)
-        .skip(skip)
-        .sort({ date: -1 });
+    .sort({ date: -1 })
+    .skip(query.skip)
+    .limit(query.limit)
 
     removeProps(transactions, ['_id']);
 
