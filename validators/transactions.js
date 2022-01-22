@@ -3,8 +3,8 @@ const Joi = require('joi').extend(require('@joi/date'));
 module.exports.getTransactionsSchema = Joi.object({
     page: Joi.number().min(0),
     perPage: Joi.number().min(1).max(100).positive(),
-    fromDate: Joi.date().format('MM-DD-YYYY'),
-    toDate: Joi.date().format('MM-DD-YYYY'),
+    fromDate: Joi.date().utc(),
+    toDate: Joi.date().utc(),
     tagId: Joi.string().guid({ version: ['uuidv4'] }),
     minAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER),
     maxAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER),

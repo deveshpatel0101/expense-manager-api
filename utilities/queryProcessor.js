@@ -1,4 +1,3 @@
-const DATE_FORMAT = 'MM-DD-YYYY';
 const moment = require('moment');
 
 module.exports.processQuery = (query) => {
@@ -19,14 +18,14 @@ module.exports.processQuery = (query) => {
 
     if (query['fromDate']) {
         query['fromDate'] = moment
-            .utc(query.fromDate, DATE_FORMAT)
+            .utc(query.fromDate)
             .startOf('day')
             .format();
     }
 
     if (query['toDate']) {
         query['toDate'] = moment
-            .utc(query.toDate, DATE_FORMAT)
+            .utc(query.toDate)
             .endOf('day')
             .format();
     }
