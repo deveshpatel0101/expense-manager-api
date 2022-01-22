@@ -27,7 +27,7 @@ let TransactionsSchema = new Schema(
             require: true,
         },
         date: {
-            type: Number,
+            type: String,
             required: true,
         },
     },

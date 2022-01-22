@@ -31,10 +31,22 @@ router.get('/', auth, async (req, res) => {
 
     processQuery(query);
     console.log(query);
+
     const dbQuery = {
-        date: { $gte: query.fromDate, $lte: query.toDate },
         amount: { $gte: query.minAmount, $lte: query.maxAmount },
     };
+
+    if (query.fromDate) {
+        dbQuery['date'] = { $gte: query.fromDate };
+    }
+
+    if (query.toDate) {
+        if (dbQuery.date) {
+            dbQuery.date.$lte = query.toDate;
+        } else {
+            dbQuery.date = { $lte: query.toDate };
+        }
+    }
 
     if (query.tagId) {
         dbQuery['tagId'] = query.tagId;
@@ -58,9 +70,9 @@ router.get('/', auth, async (req, res) => {
             },
         },
     ])
-    .sort({ date: -1 })
-    .skip(query.skip)
-    .limit(query.limit)
+        .sort({ date: -1 })
+        .skip(query.skip)
+        .limit(query.limit);
 
     removeProps(transactions, ['_id']);
 
