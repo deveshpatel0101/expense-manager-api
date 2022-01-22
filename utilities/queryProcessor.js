@@ -19,14 +19,12 @@ module.exports.processQuery = (query) => {
     if (query['fromDate']) {
         query['fromDate'] = moment
             .utc(query.fromDate)
-            .startOf('day')
             .format();
     }
 
     if (query['toDate']) {
         query['toDate'] = moment
             .utc(query.toDate)
-            .endOf('day')
             .format();
     }
 
