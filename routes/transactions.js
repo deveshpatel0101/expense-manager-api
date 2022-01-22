@@ -30,7 +30,7 @@ router.get('/', auth, async (req, res) => {
     }
 
     processQuery(query);
-
+    console.log(query);
     const dbQuery = {
         date: { $gte: query.fromDate, $lte: query.toDate },
         amount: { $gte: query.minAmount, $lte: query.maxAmount },
