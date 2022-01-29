@@ -1,13 +1,27 @@
-const Joi = require('joi').extend(require('@joi/date'));
+const Joi = require('joi');
+const moment = require('moment');
+
+const dateValidation = (value, helper) => {
+    if (!moment(value, 'YYYY-MM-DDTHH:mm:ssZ').isValid()) {
+        return helper.message(
+            'Datetime must be of format YYYY-MM-DD HH:mm:ssZ'
+        );
+    } else {
+        return true;
+    }
+};
 
 module.exports.getTransactionsSchema = Joi.object({
     page: Joi.number().min(0),
     perPage: Joi.number().min(1).max(100).positive(),
-    fromDate: Joi.date().utc(),
-    toDate: Joi.date().utc(),
+    fromDate: Joi.string().custom(dateValidation),
+    toDate: Joi.string().custom(dateValidation),
     tagId: Joi.string().guid({ version: ['uuidv4'] }),
-    minAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER),
-    maxAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER),
+    minAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+    maxAmount: Joi.number()
+        .min(0)
+        .max(Number.MAX_SAFE_INTEGER)
+        .default(Number.MAX_SAFE_INTEGER),
 });
 
 module.exports.createTransactionSchema = Joi.object({
@@ -19,7 +33,7 @@ module.exports.createTransactionSchema = Joi.object({
         .guid({ version: ['uuidv4'] })
         .required(),
     amount: Joi.number().min(0).required(),
-    date: Joi.date().utc().required(),
+    date: Joi.string().custom(dateValidation).required(),
 });
 
 module.exports.updateTransactionSchema = Joi.object({
@@ -30,8 +44,10 @@ module.exports.updateTransactionSchema = Joi.object({
         note: Joi.string(),
         tagId: Joi.string().guid({ version: ['uuidv4'] }),
         amount: Joi.number().min(0),
-        date: Joi.date().utc(),
-    }).required(),
+        date: Joi.string().custom(dateValidation),
+    })
+        .min(1)
+        .required(),
 });
 
 module.exports.deleteTransactionSchema = Joi.object({

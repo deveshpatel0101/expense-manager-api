@@ -20,7 +20,9 @@ module.exports.updateTagSchema = Joi.object({
     fields: Joi.object({
         name: Joi.string(),
         type: Joi.string().valid('debit', 'credit'),
-    }).required(),
+    })
+        .min(1)
+        .required(),
 });
 
 module.exports.deleteTagSchema = Joi.object({

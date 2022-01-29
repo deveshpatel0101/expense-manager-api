@@ -2,8 +2,8 @@ const router = require('express').Router();
 const uuid = require('uuid');
 
 const auth = require('../middlewares/auth');
-const Tags = require('../models/tags');
-const Transactions = require('../models/transactions');
+const pgClient = require('../db/pg');
+
 const {
     createTagSchema,
     getTagsSchema,
@@ -40,10 +40,21 @@ router.get('/', auth, async (req, res) => {
         skip = limit * query.page;
     }
 
-    const tags = await Tags.find().skip(skip).limit(limit);
+    const response = await pgClient.query(
+        'SELECT * FROM tags ORDER BY name OFFSET $1 LIMIT $2',
+        [skip, limit]
+    );
+
+    const count = await pgClient.query(
+        `SELECT COUNT("tagId") AS count FROM tags`
+    );
+
     res.status(200).json({
         error: false,
-        tags,
+        tags: response.rows,
+        meta: {
+            totalCount: parseInt(count.rows[0].count),
+        },
     });
 });
 
@@ -65,12 +76,12 @@ router.post('/', auth, async (req, res) => {
             errorMessage: validator.error.details[0].message,
         });
     }
+    const tag = await pgClient.query(
+        'SELECT name FROM tags WHERE name=$1 LIMIT 1',
+        [newTag.name]
+    );
 
-    const tag = await Tags.findOne({
-        name: newTag.name,
-    });
-
-    if (tag) {
+    if (tag.rows.length > 0) {
         return res.status(409).json({
             error: true,
             errorType: 'name',
@@ -78,10 +89,14 @@ router.post('/', auth, async (req, res) => {
         });
     }
 
-    const addedTag = await Tags.create(newTag);
+    const response = await pgClient.query(
+        'INSERT INTO tags ("tagId", name, type) VALUES ($1, $2, $3) RETURNING *',
+        [newTag.tagId, newTag.name, newTag.type]
+    );
+
     res.status(200).json({
         error: false,
-        addedTag,
+        addedTag: response.rows[0],
     });
 });
 
@@ -101,8 +116,12 @@ router.put('/', auth, async (req, res) => {
     }
 
     if (tagToUpdate.fields.name) {
-        let tag = Tags.findOne({ name: tagToUpdate.fields.name });
-        if (tag && tag.tagId !== tagToUpdate.tagId) {
+        let response = await pgClient.query(
+            'SELECT * FROM tags WHERE name=$1',
+            [tagToUpdate.fields.name]
+        );
+        response = response.rows[0];
+        if (response && response.tagId !== tagToUpdate.tagId) {
             return res.status(409).json({
                 error: true,
                 errorType: 'name',
@@ -111,13 +130,19 @@ router.put('/', auth, async (req, res) => {
         }
     }
 
-    const updatedTag = await Tags.findOneAndUpdate(
-        { tagId: tagToUpdate.tagId },
-        tagToUpdate.fields,
-        { new: true }
+    let columnsToUpdate = [];
+    let count = 1;
+    for (let prop in tagToUpdate.fields) {
+        columnsToUpdate.push(`"${prop}"=$${count}`);
+        count += 1;
+    }
+
+    const response = await pgClient.query(
+        `UPDATE tags SET ${columnsToUpdate.join(', ')} WHERE "tagId"=$${count} RETURNING *`,
+        [...Object.values(tagToUpdate.fields), tagToUpdate.tagId]
     );
 
-    if (!updatedTag) {
+    if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
             errorType: 'tagId',
@@ -127,7 +152,7 @@ router.put('/', auth, async (req, res) => {
 
     return res.status(200).json({
         error: false,
-        updatedTag,
+        updatedTag: response.rows[0],
     });
 });
 
@@ -144,34 +169,26 @@ router.delete('/', auth, async (req, res) => {
         });
     }
 
-    const tag = await Tags.findOne({
-        tagId: tagToDelete.tagId,
-    });
+    let response = await pgClient.query(
+        'SELECT "transactionId" FROM transactions WHERE "tagId"=$1 LIMIT 1',
+        [tagToDelete.tagId]
+    );
 
-    if (!tag) {
-        return res.status(404).json({
-            error: true,
-            errorType: 'tagId',
-            errorMessage: 'Required tag not found.',
-        });
-    }
-
-    const transactions = await Transactions.findOne({ tag: tagToDelete.name });
-
-    if (transactions?.length > 0) {
+    if (response.rowCount > 0) {
         return res.status(400).json({
             error: true,
-            errorType: 'tag',
+            errorType: 'tagId',
             errorMessage:
                 'There are transactions that link to this tag. First, delete all those transactions before deleting the tag.',
         });
     }
 
-    const deletedTag = await Tags.findOneAndDelete({
-        tagId: tagToDelete.tagId,
-    });
+    response = await pgClient.query(
+        'DELETE FROM tags WHERE "tagId"=$1 RETURNING *',
+        [tagToDelete.tagId]
+    );
 
-    if (!deletedTag) {
+    if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
             errorType: 'tagId',
@@ -181,7 +198,7 @@ router.delete('/', auth, async (req, res) => {
 
     res.status(200).json({
         error: false,
-        deletedTag,
+        deletedTag: response.rows[0],
     });
 });
 

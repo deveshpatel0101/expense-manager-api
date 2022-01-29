@@ -1,8 +1,7 @@
 const router = require('express').Router();
 const uuid = require('uuid');
 
-const Transactions = require('../models/transactions');
-const Tags = require('../models/tags');
+const pgClient = require('../db/pg');
 const auth = require('../middlewares/auth');
 const { processQuery } = require('../utilities/queryProcessor');
 
@@ -12,7 +11,6 @@ const {
     updateTransactionSchema,
     deleteTransactionSchema,
 } = require('../validators/transactions');
-const { removeProps } = require('../utilities/processRecords');
 
 // returns an array of transactions, uses pagination
 router.get('/', auth, async (req, res) => {
@@ -30,55 +28,37 @@ router.get('/', auth, async (req, res) => {
     }
 
     processQuery(query);
-    console.log(query);
 
-    const dbQuery = {
-        amount: { $gte: query.minAmount, $lte: query.maxAmount },
-    };
+    let dbQuery = `SELECT * FROM (SELECT * FROM transactions NATURAL JOIN tags) AS t WHERE amount >= $1 AND amount <= $2`;
+    let queryParams = [query.minAmount, query.maxAmount];
+    let count = 3;
+
+    if (query.tagId) {
+        dbQuery += ` AND "tagId"=$${count}`;
+        queryParams.push(query.tagId);
+        count += 1;
+    }
 
     if (query.fromDate) {
-        dbQuery['date'] = { $gte: query.fromDate };
+        dbQuery += ` AND date>=$${count}`;
+        queryParams.push(query.fromDate);
+        count += 1;
     }
 
     if (query.toDate) {
-        if (dbQuery.date) {
-            dbQuery.date.$lte = query.toDate;
-        } else {
-            dbQuery.date = { $lte: query.toDate };
-        }
+        dbQuery += ` AND date<=$${count}`;
+        queryParams.push(query.toDate);
+        count += 1;
     }
 
-    if (query.tagId) {
-        dbQuery['tagId'] = query.tagId;
-    }
+    dbQuery += ` ORDER BY date DESC OFFSET $${count} LIMIT $${count + 1}`;
+    queryParams.push(query.skip, query.limit);
 
-    const transactions = await Transactions.aggregate([
-        {
-            $match: dbQuery,
-        },
-        {
-            $lookup: {
-                from: 'tags',
-                localField: 'tagId',
-                foreignField: 'tagId',
-                as: 'tag',
-            },
-        },
-        {
-            $project: {
-                tagId: 0,
-            },
-        },
-    ])
-        .sort({ date: -1 })
-        .skip(query.skip)
-        .limit(query.limit);
-
-    removeProps(transactions, ['_id']);
+    const response = await pgClient.query(dbQuery, queryParams);
 
     res.status(200).json({
         error: false,
-        transactions,
+        transactions: response.rows,
     });
 });
 
@@ -98,11 +78,12 @@ router.post('/', auth, async (req, res) => {
         });
     }
 
-    const tag = await Tags.findOne({
-        tagId: transaction.tagId,
-    });
+    let response = await pgClient.query(
+        'SELECT "tagId" FROM tags WHERE "tagId"=$1',
+        [transaction.tagId]
+    );
 
-    if (!tag) {
+    if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
             errorType: 'tagId',
@@ -110,8 +91,18 @@ router.post('/', auth, async (req, res) => {
         });
     }
 
-    const addedTransaction = await Transactions.create(transaction);
-    res.status(200).json({ error: false, addedTransaction });
+    response = await pgClient.query(
+        'INSERT INTO transactions ("transactionId", "tagId", note, amount, date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [
+            transaction.transactionId,
+            transaction.tagId,
+            transaction.note,
+            transaction.amount,
+            transaction.date,
+        ]
+    );
+
+    res.status(200).json({ error: false, addedTransaction: response.rows[0] });
 });
 
 // updates an item specified by item object. id is necessary.
@@ -129,13 +120,38 @@ router.put('/', auth, async (req, res) => {
         });
     }
 
-    const updatedTransaction = await Transactions.findOneAndUpdate(
-        { transactionId: data.transactionId },
-        data.fields,
-        { new: true }
-    );
+    if (data.fields.tagId) {
+        const response = await pgClient.query(
+            'SELECT "tagId" FROM tags WHERE "tagId"=$1',
+            [data.fields.tagId]
+        );
 
-    if (!updatedTransaction) {
+        if (response.rows.length === 0) {
+            return res.status(404).json({
+                error: true,
+                errorType: 'tagId',
+                errorMessage: 'Required tag does not exist.',
+            });
+        }
+    }
+
+    let dbQuery = 'UPDATE transactions SET';
+    let columnsToUpdate = [];
+    let queryParams = [];
+    let count = 1;
+    for (let prop in data.fields) {
+        columnsToUpdate.push(`"${prop}"=$${count}`);
+        queryParams.push(data.fields[prop]);
+        count += 1;
+    }
+    dbQuery +=
+        columnsToUpdate.join(', ') +
+        `WHERE "transactionId"=$${count} RETURNING *`;
+    queryParams.push(data.transactionId);
+
+    const response = await pgClient.query(dbQuery, queryParams);
+
+    if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
             errorType: 'item',
@@ -145,7 +161,7 @@ router.put('/', auth, async (req, res) => {
 
     res.status(200).json({
         error: false,
-        updatedTransaction,
+        updatedTransaction: response.rows[0],
     });
 });
 
@@ -162,9 +178,12 @@ router.delete('/', auth, async (req, res) => {
         });
     }
 
-    const deletedTransaction = await Transactions.findOneAndDelete(transaction);
+    const response = await pgClient.query(
+        'DELETE FROM transactions WHERE "transactionId"=$1 RETURNING *',
+        [transaction.transactionId]
+    );
 
-    if (!deletedTransaction) {
+    if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
             errorType: 'item',
@@ -174,7 +193,7 @@ router.delete('/', auth, async (req, res) => {
 
     res.status(200).json({
         error: false,
-        deletedTransaction,
+        deletedTransaction: response.rows[0],
     });
 });
 
