@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const pgClient = require('../db/pg');
 const auth = require('../middlewares/auth');
 const { processQuery } = require('../utilities/queryProcessor');
+const { reshapeItem } = require('../utilities/reshapeObject');
 
 const {
     getTransactionsSchema,
@@ -55,10 +56,12 @@ router.get('/', auth, async (req, res) => {
     queryParams.push(query.skip, query.limit);
 
     const response = await pgClient.query(dbQuery, queryParams);
+    const transactions = response.rows;
+    reshapeItem(transactions);
 
     res.status(200).json({
         error: false,
-        transactions: response.rows,
+        transactions: transactions,
     });
 });
 
