@@ -7,7 +7,7 @@ const dateValidation = (value, helper) => {
             'Datetime must be of format YYYY-MM-DD HH:mm:ssZ'
         );
     } else {
-        return true;
+        return value;
     }
 };
 

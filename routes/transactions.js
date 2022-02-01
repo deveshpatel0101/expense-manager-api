@@ -142,7 +142,7 @@ router.put('/', auth, async (req, res) => {
         }
     }
 
-    let dbQuery = 'UPDATE transactions SET';
+    let dbQuery = 'UPDATE transactions SET ';
     let columnsToUpdate = [];
     let queryParams = [];
     let count = 1;
@@ -151,9 +151,9 @@ router.put('/', auth, async (req, res) => {
         queryParams.push(transactionToUpdate.fields[prop]);
         count += 1;
     }
-    dbQuery +=
+    dbQuery += 
         columnsToUpdate.join(', ') +
-        `WHERE "transactionId"=$${count} RETURNING *`;
+        ` WHERE "transactionId"=$${count} RETURNING *`;
     queryParams.push(transactionToUpdate.transactionId);
 
     const response = await pgClient.query(dbQuery, queryParams);
