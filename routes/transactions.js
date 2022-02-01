@@ -4,7 +4,7 @@ const uuid = require('uuid');
 const pgClient = require('../db/pg');
 const auth = require('../middlewares/auth');
 const { processQuery } = require('../utilities/queryProcessor');
-const { reshapeItem } = require('../utilities/reshapeObject');
+const { reshapeTransactions } = require('../utilities/reshapeObject');
 
 const {
     getTransactionsSchema,
@@ -57,7 +57,7 @@ router.get('/', auth, async (req, res) => {
 
     const response = await pgClient.query(dbQuery, queryParams);
     const transactions = response.rows;
-    reshapeItem(transactions);
+    reshapeTransactions(transactions);
 
     res.status(200).json({
         error: false,
@@ -67,7 +67,7 @@ router.get('/', auth, async (req, res) => {
 
 // add a new transaction
 router.post('/', auth, async (req, res) => {
-    const transaction = {
+    let transaction = {
         ...req.body,
         transactionId: uuid.v4(),
     };
@@ -80,6 +80,8 @@ router.post('/', auth, async (req, res) => {
             errorMessage: validator.error.details[0].message,
         });
     }
+
+    transaction = validator.value;
 
     let response = await pgClient.query(
         'SELECT "tagId" FROM tags WHERE "tagId"=$1',
@@ -108,13 +110,13 @@ router.post('/', auth, async (req, res) => {
     res.status(200).json({ error: false, addedTransaction: response.rows[0] });
 });
 
-// updates an item specified by item object. id is necessary.
+// updates a transaction specified by transactionId
 router.put('/', auth, async (req, res) => {
-    const data = {
+    let transactionToUpdate = {
         ...req.body,
     };
 
-    const validator = updateTransactionSchema.validate(data);
+    const validator = updateTransactionSchema.validate(transactionToUpdate);
     if (validator.error) {
         return res.status(403).json({
             error: true,
@@ -123,10 +125,12 @@ router.put('/', auth, async (req, res) => {
         });
     }
 
-    if (data.fields.tagId) {
+    transactionToUpdate = validator.value;
+
+    if (transactionToUpdate.fields.tagId) {
         const response = await pgClient.query(
             'SELECT "tagId" FROM tags WHERE "tagId"=$1',
-            [data.fields.tagId]
+            [transactionToUpdate.fields.tagId]
         );
 
         if (response.rows.length === 0) {
@@ -142,23 +146,23 @@ router.put('/', auth, async (req, res) => {
     let columnsToUpdate = [];
     let queryParams = [];
     let count = 1;
-    for (let prop in data.fields) {
+    for (let prop in transactionToUpdate.fields) {
         columnsToUpdate.push(`"${prop}"=$${count}`);
-        queryParams.push(data.fields[prop]);
+        queryParams.push(transactionToUpdate.fields[prop]);
         count += 1;
     }
     dbQuery +=
         columnsToUpdate.join(', ') +
         `WHERE "transactionId"=$${count} RETURNING *`;
-    queryParams.push(data.transactionId);
+    queryParams.push(transactionToUpdate.transactionId);
 
     const response = await pgClient.query(dbQuery, queryParams);
 
     if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
-            errorType: 'item',
-            errorMessage: 'Required item not found.',
+            errorType: 'transaction',
+            errorMessage: 'Required transaction not found.',
         });
     }
 
@@ -168,7 +172,7 @@ router.put('/', auth, async (req, res) => {
     });
 });
 
-// deletes a specific item specified by itemId in request body
+// deletes a specific transaction specified by transactionId in request body
 router.delete('/', auth, async (req, res) => {
     const transaction = req.body;
 
@@ -189,8 +193,8 @@ router.delete('/', auth, async (req, res) => {
     if (response.rows.length === 0) {
         return res.status(404).json({
             error: true,
-            errorType: 'item',
-            errorMessage: 'Required item not found.',
+            errorType: 'transaction',
+            errorMessage: 'Required transaction not found.',
         });
     }
 

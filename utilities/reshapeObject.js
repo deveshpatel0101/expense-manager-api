@@ -1,12 +1,12 @@
-module.exports.reshapeItem = (items) => {
-    items.forEach((item) => {
-        item.tag = {
-            tagId: item.tagId,
-            name: item.name,
-            type: item.type,
+module.exports.reshapeTransactions = (transactions) => {
+    transactions.forEach((transaction) => {
+        transaction.tag = {
+            tagId: transaction.tagId,
+            name: transaction.name,
+            type: transaction.type,
         };
-        delete item.tagId;
-        delete item.name;
-        delete item.type;
+        delete transaction.tagId;
+        delete transaction.name;
+        delete transaction.type;
     });
 };

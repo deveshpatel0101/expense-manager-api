@@ -102,7 +102,7 @@ router.post('/', auth, async (req, res) => {
 
 // update tag
 router.put('/', auth, async (req, res) => {
-    const tagToUpdate = {
+    let tagToUpdate = {
         ...req.body,
     };
 
@@ -114,6 +114,8 @@ router.put('/', auth, async (req, res) => {
             errorMessage: validator.error.details[0].message,
         });
     }
+
+    tagToUpdate = validator.value;
 
     if (tagToUpdate.fields.name) {
         let response = await pgClient.query(

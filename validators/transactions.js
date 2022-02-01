@@ -28,12 +28,12 @@ module.exports.createTransactionSchema = Joi.object({
     transactionId: Joi.string()
         .guid({ version: ['uuidv4'] })
         .required(),
-    note: Joi.string().required(),
+    note: Joi.string().trim().required(),
     tagId: Joi.string()
         .guid({ version: ['uuidv4'] })
         .required(),
     amount: Joi.number().min(0).required(),
-    date: Joi.string().custom(dateValidation).required(),
+    date: Joi.string().trim().custom(dateValidation).required(),
 });
 
 module.exports.updateTransactionSchema = Joi.object({
@@ -41,10 +41,10 @@ module.exports.updateTransactionSchema = Joi.object({
         .guid({ version: ['uuidv4'] })
         .required(),
     fields: Joi.object({
-        note: Joi.string(),
+        note: Joi.string().trim(),
         tagId: Joi.string().guid({ version: ['uuidv4'] }),
         amount: Joi.number().min(0),
-        date: Joi.string().custom(dateValidation),
+        date: Joi.string().trim().custom(dateValidation),
     })
         .min(1)
         .required(),

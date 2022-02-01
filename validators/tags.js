@@ -9,8 +9,8 @@ module.exports.createTagSchema = Joi.object({
     tagId: Joi.string()
         .guid({ version: ['uuidv4'] })
         .required(),
-    name: Joi.string().lowercase().required(),
-    type: Joi.string().lowercase().valid('debit', 'credit').required(),
+    name: Joi.string().trim().lowercase().required(),
+    type: Joi.string().trim().lowercase().valid('debit', 'credit').required(),
 });
 
 module.exports.updateTagSchema = Joi.object({
@@ -18,8 +18,8 @@ module.exports.updateTagSchema = Joi.object({
         .guid({ version: ['uuidv4'] })
         .required(),
     fields: Joi.object({
-        name: Joi.string().lowercase(),
-        type: Joi.string().lowercase().valid('debit', 'credit'),
+        name: Joi.string().trim().lowercase(),
+        type: Joi.string().trim().lowercase().valid('debit', 'credit'),
     })
         .min(1)
         .required(),
