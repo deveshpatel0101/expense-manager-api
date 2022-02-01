@@ -60,15 +60,12 @@ router.get('/', auth, async (req, res) => {
 
 // add a new tag
 router.post('/', auth, async (req, res) => {
-    const newTag = {
+    let newTag = {
         ...req.body,
         tagId: uuid.v4(),
     };
 
-    const validator = createTagSchema.validate(newTag, {
-        convert: false,
-    });
-
+    const validator = createTagSchema.validate(newTag);
     if (validator.error) {
         return res.status(400).json({
             error: true,
@@ -76,6 +73,9 @@ router.post('/', auth, async (req, res) => {
             errorMessage: validator.error.details[0].message,
         });
     }
+
+    newTag = validator.value;
+
     const tag = await pgClient.query(
         'SELECT name FROM tags WHERE name=$1 LIMIT 1',
         [newTag.name]
@@ -138,7 +138,9 @@ router.put('/', auth, async (req, res) => {
     }
 
     const response = await pgClient.query(
-        `UPDATE tags SET ${columnsToUpdate.join(', ')} WHERE "tagId"=$${count} RETURNING *`,
+        `UPDATE tags SET ${columnsToUpdate.join(
+            ', '
+        )} WHERE "tagId"=$${count} RETURNING *`,
         [...Object.values(tagToUpdate.fields), tagToUpdate.tagId]
     );
 
