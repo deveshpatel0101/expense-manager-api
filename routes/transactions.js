@@ -21,7 +21,7 @@ router.get('/', auth, async (req, res) => {
 
     const validator = getTransactionsSchema.validate(query);
     if (validator.error) {
-        return res.status(403).json({
+        return res.status(400).json({
             error: true,
             errorType: validator.error.details[0].path[0],
             errorMessage: validator.error.details[0].message,
@@ -74,7 +74,7 @@ router.post('/', auth, async (req, res) => {
 
     const validator = createTransactionSchema.validate(transaction);
     if (validator.error) {
-        return res.status(403).json({
+        return res.status(400).json({
             error: true,
             errorType: validator.error.details[0].path[0],
             errorMessage: validator.error.details[0].message,
@@ -118,7 +118,7 @@ router.put('/', auth, async (req, res) => {
 
     const validator = updateTransactionSchema.validate(transactionToUpdate);
     if (validator.error) {
-        return res.status(403).json({
+        return res.status(400).json({
             error: true,
             errorType: validator.error.details[0].path[0],
             errorMessage: validator.error.details[0].message,
@@ -178,7 +178,7 @@ router.delete('/', auth, async (req, res) => {
 
     const validator = deleteTransactionSchema.validate(transaction);
     if (validator.error) {
-        return res.status(403).json({
+        return res.status(400).json({
             error: true,
             errorType: validator.error.details[0].path[0],
             errorMessage: validator.error.details[0].message,

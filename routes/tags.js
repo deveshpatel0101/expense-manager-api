@@ -25,7 +25,7 @@ router.get('/', auth, async (req, res) => {
 
     const validator = getTagsSchema.validate(query);
     if (validator.error) {
-        return res.status(403).json({
+        return res.status(400).json({
             error: true,
             errorType: validator.error.details[0].path[0],
             errorMessage: validator.error.details[0].message,
