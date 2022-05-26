@@ -14,13 +14,13 @@ const {
 // returns an array of tags, uses pagination
 router.get('/', auth, async (req, res) => {
     let skip = 0;
-    let limit = 10;
+    let limit = 100;
 
     const page = Number.parseInt(req.query.page);
     const perPage = Number.parseInt(req.query.perPage);
     let query = {
         page: Number.isInteger(page) ? page : 1,
-        perPage: Number.isInteger(perPage) ? perPage : 10,
+        perPage: Number.isInteger(perPage) ? perPage : 100,
     };
 
     const validator = getTagsSchema.validate(query);
