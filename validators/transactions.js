@@ -16,6 +16,7 @@ module.exports.getTransactionsSchema = Joi.object({
     perPage: Joi.number().min(1).max(100).positive(),
     fromDate: Joi.string().custom(dateValidation),
     toDate: Joi.string().custom(dateValidation),
+    text: Joi.string().max(256),
     tagId: Joi.string().guid({ version: ['uuidv4'] }),
     minAmount: Joi.number().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
     maxAmount: Joi.number()

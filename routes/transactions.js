@@ -5,6 +5,12 @@ const pgClient = require('../db/pg');
 const auth = require('../middlewares/auth');
 const { processQuery } = require('../utilities/queryProcessor');
 const { reshapeTransactions } = require('../utilities/reshapeObject');
+const {
+    getData,
+    getTotalTransactions,
+    getTotalExpense,
+    getTotalIncome,
+} = require('../data/transactions');
 
 const {
     getTransactionsSchema,
@@ -15,11 +21,11 @@ const {
 
 // returns an array of transactions, uses pagination
 router.get('/', auth, async (req, res) => {
-    let query = {
+    let filters = {
         ...req.query,
     };
 
-    const validator = getTransactionsSchema.validate(query);
+    const validator = getTransactionsSchema.validate(filters);
     if (validator.error) {
         return res.status(400).json({
             error: true,
@@ -28,40 +34,23 @@ router.get('/', auth, async (req, res) => {
         });
     }
 
-    processQuery(query);
+    processQuery(filters);
 
-    let dbQuery = `SELECT * FROM (SELECT * FROM transactions NATURAL JOIN tags) AS t WHERE amount >= $1 AND amount <= $2`;
-    let queryParams = [query.minAmount, query.maxAmount];
-    let count = 3;
+    const transactions = await getData(filters, filters.skip, filters.limit);
+    const count = await getTotalTransactions(filters);
+    const income = await getTotalIncome(filters);
+    const expense = await getTotalExpense(filters);
 
-    if (query.tagId) {
-        dbQuery += ` AND "tagId"=$${count}`;
-        queryParams.push(query.tagId);
-        count += 1;
-    }
-
-    if (query.fromDate) {
-        dbQuery += ` AND date>=$${count}`;
-        queryParams.push(query.fromDate);
-        count += 1;
-    }
-
-    if (query.toDate) {
-        dbQuery += ` AND date<=$${count}`;
-        queryParams.push(query.toDate);
-        count += 1;
-    }
-
-    dbQuery += ` ORDER BY date DESC OFFSET $${count} LIMIT $${count + 1}`;
-    queryParams.push(query.skip, query.limit);
-
-    const response = await pgClient.query(dbQuery, queryParams);
-    const transactions = response.rows;
     reshapeTransactions(transactions);
 
     res.status(200).json({
         error: false,
         transactions: transactions,
+        meta: {
+            count,
+            income,
+            expense,
+        },
     });
 });
 
@@ -151,7 +140,7 @@ router.put('/', auth, async (req, res) => {
         queryParams.push(transactionToUpdate.fields[prop]);
         count += 1;
     }
-    dbQuery += 
+    dbQuery +=
         columnsToUpdate.join(', ') +
         ` WHERE "transactionId"=$${count} RETURNING *`;
     queryParams.push(transactionToUpdate.transactionId);
