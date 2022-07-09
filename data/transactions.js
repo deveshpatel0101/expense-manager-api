@@ -44,7 +44,7 @@ const getQueryConditions = (filters) => {
     }
 
     if ('tagId' in filters) {
-        queryConditions.push(`"tagId"='$${count}'`);
+        queryConditions.push(`"tagId"=$${count}`);
         queryParams.push(filters.tagId);
         count += 1;
     }
