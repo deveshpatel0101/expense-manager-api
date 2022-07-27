@@ -37,7 +37,7 @@ module.exports.processQuery = (query) => {
     if (query['maxAmount']) {
         query['maxAmount'] = Number.parseFloat(query['maxAmount']);
     } else {
-        query['maxAmount'] = Number.POSITIVE_INFINITY;
+        query['maxAmount'] = Number.MAX_SAFE_INTEGER;
     }
 
     if (query.tagId) {

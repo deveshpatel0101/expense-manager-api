@@ -26,6 +26,7 @@ router.get('/', auth, async (req, res) => {
     };
 
     const validator = getTransactionsSchema.validate(filters);
+    filters = { ...validator.value };
     if (validator.error) {
         return res.status(400).json({
             error: true,

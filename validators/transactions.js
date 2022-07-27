@@ -12,8 +12,8 @@ const dateValidation = (value, helper) => {
 };
 
 module.exports.getTransactionsSchema = Joi.object({
-    page: Joi.number().min(0),
-    perPage: Joi.number().min(1).max(100).positive(),
+    page: Joi.number().min(1).positive().default(1),
+    perPage: Joi.number().min(1).max(100).positive().default(10),
     fromDate: Joi.string().custom(dateValidation),
     toDate: Joi.string().custom(dateValidation),
     text: Joi.string().max(256),
