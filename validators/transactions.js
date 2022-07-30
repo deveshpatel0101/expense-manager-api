@@ -2,7 +2,7 @@ const Joi = require('joi');
 const moment = require('moment');
 
 const dateValidation = (value, helper) => {
-    if (!moment(value, 'YYYY-MM-DDTHH:mm:ssZ').isValid()) {
+    if (!moment(value, 'YYYY-MM-DDTHH:mm:ssZ', true).isValid()) {
         return helper.message(
             'Datetime must be of format YYYY-MM-DD HH:mm:ssZ'
         );

@@ -2,6 +2,7 @@ const bodyParser = require('body-parser');
 
 const transactions = require('../routes/transactions');
 const tags = require('../routes/tags');
+const stats = require('../routes/stats');
 const error = require('../middlewares/error');
 
 module.exports = (app) => {
@@ -28,5 +29,6 @@ module.exports = (app) => {
 
     app.use('/transactions', transactions);
     app.use('/tags', tags);
+    app.use('/transactions/stats', stats);
     app.use(error);
 };
