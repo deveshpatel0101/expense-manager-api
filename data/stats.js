@@ -2,10 +2,11 @@ const moment = require('moment');
 const pgClient = require('../db/pg');
 
 module.exports.getStats = async (query) => {
-    if (!query.isRange) {
+    if (query.type === 'month') {
         return await getStatsForMonth(query.date);
+    } else if (query.type == 'year') {
+        return await getStatsForYear(query.date);
     }
-    return await getStatsForRange(query.fromDate, query.toDate);
 };
 
 const getStatsForMonth = async (date) => {
@@ -24,7 +25,10 @@ const getStatsForMonth = async (date) => {
     return results;
 };
 
-const getStatsForRange = async (fromDate, toDate) => {
+const getStatsForYear = async (date) => {
+    const fromDate = date;
+    const toDate = moment(date).add(11, 'M').format('YYYY-MM-DD');
+    console.log(fromDate, toDate);
     let sql = `SELECT SUM(amount) amount, SUBSTRING(DATE_TRUNC('month', transactions.date)::TEXT, 0, 11) transactionDate FROM transactions NATURAL JOIN tags WHERE transactions."tagId" = tags."tagId" AND tags.type=$1 AND DATE_TRUNC('month', transactions.date) >= $2 AND DATE_TRUNC('month', transactions.date) <= $3 GROUP BY DATE_TRUNC('month', transactions.date);`;
     const params = ['credit', fromDate, toDate];
     const credits = await pgClient.query(sql, params);

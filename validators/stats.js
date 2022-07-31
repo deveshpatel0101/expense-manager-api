@@ -1,31 +1,29 @@
 const Joi = require('joi');
 const moment = require('moment');
 
-const dateValidation = (value, helper) => {
+const monthDateValidation = (value, helper) => {
     if (!moment(value, 'YYYY-MM', true).isValid()) {
-        return helper.message(
-            'Datetime must be of format YYYY-MM'
-        );
+        return helper.message('Datetime must be of format YYYY-MM');
+    } else {
+        return value;
+    }
+};
+
+const yearDateValidation = (value, helper) => {
+    if (!moment(value, 'YYYY', true).isValid()) {
+        return helper.message('Datetime must be of format YYYY');
     } else {
         return value;
     }
 };
 
 module.exports.getStatsSchema = Joi.object({
-    isRange: Joi.boolean().required(),
-    date: Joi.when('isRange', {
-        is: Joi.boolean().valid(false, 'false'),
-        then: Joi.string().custom(dateValidation).required(),
-        otherwise: Joi.valid(null),
-    }),
-    fromDate: Joi.when('isRange', {
-        is: Joi.boolean().valid(true, 'true'),
-        then: Joi.string().custom(dateValidation).required(),
-        otherwise: Joi.valid(null),
-    }),
-    toDate: Joi.when('isRange', {
-        is: Joi.boolean().valid(true, 'true'),
-        then: Joi.string().custom(dateValidation).required(),
-        otherwise: Joi.valid(null),
+    type: Joi.string().valid('month', 'year', 'tag').required(),
+    date: Joi.when('type', {
+        is: Joi.string().valid('month', 'tag'),
+        then: Joi.string().custom(monthDateValidation).required(),
+    }).when('type', {
+        is: Joi.string().valid('year'),
+        then: Joi.string().custom(yearDateValidation).required(),
     }),
 });
