@@ -10,17 +10,16 @@ module.exports.getStats = async (query) => {
 };
 
 const getStatsForMonth = async (date) => {
-    const results = {};
+    const results = [{ month: date, income: '0', expense: '0' }];
     let sql = `SELECT SUM(amount) amount, SUBSTRING(DATE_TRUNC('month', transactions.date)::TEXT, 0, 11) transactionDate FROM transactions NATURAL JOIN tags WHERE transactions."tagId" = tags."tagId" AND tags.type=$1 AND DATE_TRUNC('month', transactions.date) = $2 GROUP BY DATE_TRUNC('month', transactions.date)`;
-    results[date] = { income: 0, expense: 0 };
 
     const params = ['credit', date];
     let res = await pgClient.query(sql, params);
-    results[date]['income'] = res.rows.length > 0 ? res.rows[0].amount : 0;
+    results[0]['income'] = res.rows.length > 0 ? res.rows[0].amount : '0';
 
     params[0] = 'debit';
     res = await pgClient.query(sql, params);
-    results[date]['expense'] = res.rows.length > 0 ? res.rows[0].amount : 0;
+    results[0]['expense'] = res.rows.length > 0 ? res.rows[0].amount : '0';
 
     return results;
 };
@@ -43,7 +42,7 @@ const reshapeResults = (credits, debits) => {
         const date = moment(c.transactiondate).format('YYYY-MM-DD');
         const amount = c.amount;
         if (!(date in results)) {
-            results[date] = { income: 0, expense: 0 };
+            results[date] = { income: '0', expense: '0' };
         }
         results[date]['income'] = amount;
     }
@@ -52,9 +51,19 @@ const reshapeResults = (credits, debits) => {
         const date = moment(d.transactiondate).format('YYYY-MM-DD');
         const amount = d.amount;
         if (!(date in results)) {
-            results[date] = { income: 0, expense: 0 };
+            results[date] = { income: '0', expense: '0' };
         }
         results[date]['expense'] = amount;
     }
-    return results;
+
+    let resultsArray = [];
+    for (let key in results) {
+        resultsArray.push({
+            month: key,
+            income: results[key].income,
+            expense: results[key].expense,
+        });
+    }
+
+    return resultsArray;
 };
