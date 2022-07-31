@@ -16,11 +16,11 @@ const getStatsForMonth = async (date) => {
 
     const params = ['credit', date];
     let res = await pgClient.query(sql, params);
-    results[date]['income'] = res.rows[0].amount;
+    results[date]['income'] = res.rows.length > 0 ? res.rows[0].amount : 0;
 
     params[0] = 'debit';
     res = await pgClient.query(sql, params);
-    results[date]['expense'] = res.rows[0].amount;
+    results[date]['expense'] = res.rows.length > 0 ? res.rows[0].amount : 0;
 
     return results;
 };
@@ -28,7 +28,6 @@ const getStatsForMonth = async (date) => {
 const getStatsForYear = async (date) => {
     const fromDate = date;
     const toDate = moment(date).add(11, 'M').format('YYYY-MM-DD');
-    console.log(fromDate, toDate);
     let sql = `SELECT SUM(amount) amount, SUBSTRING(DATE_TRUNC('month', transactions.date)::TEXT, 0, 11) transactionDate FROM transactions NATURAL JOIN tags WHERE transactions."tagId" = tags."tagId" AND tags.type=$1 AND DATE_TRUNC('month', transactions.date) >= $2 AND DATE_TRUNC('month', transactions.date) <= $3 GROUP BY DATE_TRUNC('month', transactions.date);`;
     const params = ['credit', fromDate, toDate];
     const credits = await pgClient.query(sql, params);
