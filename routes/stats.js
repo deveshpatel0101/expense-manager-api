@@ -29,7 +29,7 @@ router.get('/', auth, async (req, res) => {
     formatQuery(query);
 
     const stats = await getStats(query);
-    return res.status(200).json(stats);
+    return res.status(200).json({ error: false, data: stats });
 });
 
 const formatQuery = (query) => {
