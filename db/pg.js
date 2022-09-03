@@ -1,18 +1,13 @@
-const { Client } = require('pg');
+const { Pool } = require('pg');
 const winston = require('winston');
 
-const client = new Client({
+const pool = new Pool({
+    user: process.env.PG_USER,
     host: process.env.PG_HOST,
     database: process.env.PG_DATABASE,
-    user: process.env.PG_USER,
     password: process.env.PG_PASSWORD,
     port: process.env.PG_PORT,
-    ssl: process.env.PG_HOST !== 'localhost' ? { rejectUnauthorized: false } : false,
+    ssl: process.env.PG_HOST !== 'localhost' ? true : false,
 });
 
-client.connect().then(() => {
-    winston.info('Connected to PostgreSQL...');
-    console.log('Connected to PostgreSQL...');
-});
-
-module.exports = client;
+module.exports = pool;
