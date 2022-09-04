@@ -1,6 +1,10 @@
+const bcrypt = require('bcryptjs');
+
 module.exports = function (req, res, next) {
     const token = req.header('Authorization');
-    if (token !== process.env.PASSCODE) {
+    const hash = process.env.PASSCODE;
+    const isAuth = bcrypt.compareSync(token, hash);
+    if (!isAuth) {
         return res.status(401).json({
             error: true,
             errorType: 'token',
