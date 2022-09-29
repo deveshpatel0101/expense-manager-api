@@ -6,6 +6,10 @@ module.exports.getStats = async (query) => {
         return await getStatsForMonth(query.date);
     } else if (query.type == 'year') {
         return await getStatsForYear(query.date);
+    } else if (query.type == 'tag-month') {
+        return await getStatsByTagsByMonth(query.date);
+    } else if (query.type == 'tag-year') {
+        return await getStatsByTagsByYear(query.date);
     }
 };
 
@@ -35,6 +39,22 @@ const getStatsForYear = async (date) => {
     const debits = await pgClient.query(sql, params);
     return reshapeResults(credits.rows, debits.rows);
 };
+
+const getStatsByTagsByMonth = async (date) => {
+    const params = [date]
+    const sql = `SELECT tags.name, SUM(transactions.amount) AS amount FROM transactions JOIN tags ON tags."tagId" = transactions."tagId" WHERE DATE_TRUNC('month', transactions.date) = $1 GROUP BY tags.name;`
+    const res = await pgClient.query(sql, params);
+    return res.rows;
+}
+
+const getStatsByTagsByYear = async (date) => {
+    const fromDate = date;
+    const toDate = moment(date).add(11, 'M').format('YYYY-MM-DD');
+    const params = [fromDate, toDate];
+    const sql = `SELECT tags.name, SUM(transactions.amount) AS amount FROM transactions JOIN tags ON tags."tagId" = transactions."tagId" WHERE DATE_TRUNC('month', transactions.date) >= $1 AND DATE_TRUNC('month', transactions.date) <= $2 GROUP BY tags.name;`
+    const res = await pgClient.query(sql, params);
+    return res.rows;
+}
 
 const reshapeResults = (credits, debits) => {
     const results = {};

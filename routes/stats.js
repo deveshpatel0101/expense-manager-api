@@ -18,14 +18,6 @@ router.get('/', auth, async (req, res) => {
         });
     }
 
-    if (query.type === 'tag') {
-        return res.status(500).json({
-            error: true,
-            errorType: 'type',
-            errorMessage: 'Query on tags by months is not yet implemented.',
-        });
-    }
-
     formatQuery(query);
 
     const stats = await getStats(query);
@@ -33,7 +25,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 const formatQuery = (query) => {
-    if (query.type === 'month' || query.type === 'tag') {
+    if (query.type === 'month' || query.type === 'tag-month') {
         query.date = moment(query.date, 'YYYY-MM').format('YYYY-MM-DD');
     } else {
         query.date = moment(query.date, 'YYYY').format('YYYY-MM-DD');

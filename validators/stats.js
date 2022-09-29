@@ -18,12 +18,12 @@ const yearDateValidation = (value, helper) => {
 };
 
 module.exports.getStatsSchema = Joi.object({
-    type: Joi.string().valid('month', 'year', 'tag').required(),
+    type: Joi.string().valid('month', 'year', 'tag-month', 'tag-year').required(),
     date: Joi.when('type', {
-        is: Joi.string().valid('month', 'tag'),
+        is: Joi.string().valid('month', 'tag-month'),
         then: Joi.string().custom(monthDateValidation).required(),
     }).when('type', {
-        is: Joi.string().valid('year'),
+        is: Joi.string().valid('year', 'tag-year'),
         then: Joi.string().custom(yearDateValidation).required(),
     }),
 });
