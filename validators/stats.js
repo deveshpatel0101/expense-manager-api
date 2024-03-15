@@ -17,8 +17,23 @@ const yearDateValidation = (value, helper) => {
     }
 };
 
+const timezoneValidation = (value, helper) => {
+    if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
+        throw new Error('Time zones are not available in this environment');
+    }
+
+    try {
+        Intl.DateTimeFormat(undefined, { timeZone: value });
+        return value;
+    } catch (ex) {
+        return helper.message('Timezone must be of valid format');
+    }
+};
+
 module.exports.getStatsSchema = Joi.object({
-    type: Joi.string().valid('month', 'year', 'tag-month', 'tag-year').required(),
+    type: Joi.string()
+        .valid('month', 'year', 'tag-month', 'tag-year')
+        .required(),
     date: Joi.when('type', {
         is: Joi.string().valid('month', 'tag-month'),
         then: Joi.string().custom(monthDateValidation).required(),
@@ -26,4 +41,5 @@ module.exports.getStatsSchema = Joi.object({
         is: Joi.string().valid('year', 'tag-year'),
         then: Joi.string().custom(yearDateValidation).required(),
     }),
+    timezone: Joi.string().custom(timezoneValidation).required(),
 });
